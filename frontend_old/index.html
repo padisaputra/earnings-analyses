@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Earnings Analyser</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #0f172a;
+        color: #e5e7eb;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+        padding: 40px 16px;
+      }
+      .container {
+        max-width: 1200px;
+        width: 100%;
+      }
+      .card {
+        background: #020617;
+        border-radius: 16px;
+        padding: 24px 24px 16px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+        border: 1px solid #1f2937;
+      }
+      h1 {
+        margin-top: 0;
+        font-size: 24px;
+        margin-bottom: 4px;
+      }
+      .subtitle {
+        font-size: 13px;
+        color: #9ca3af;
+        margin-bottom: 20px;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      }
+      input {
+        flex: 1;
+        min-width: 140px;
+        padding: 10px 12px;
+        border-radius: 999px;
+        border: 1px solid #374151;
+        background: #020617;
+        color: #e5e7eb;
+        outline: none;
+        font-size: 14px;
+      }
+      input:focus {
+        border-color: #38bdf8;
+        box-shadow: 0 0 0 1px #38bdf8;
+      }
+      button {
+        padding: 10px 18px;
+        border-radius: 999px;
+        border: none;
+        background: #38bdf8;
+        color: #020617;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      button:hover {
+        filter: brightness(1.1);
+      }
+      .meta {
+        font-size: 13px;
+        color: #9ca3af;
+        margin-bottom: 12px;
+      }
+      .meta strong {
+        color: #e5e7eb;
+      }
+      .error {
+        color: #fecaca;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        padding: 8px 10px;
+        border-radius: 8px;
+        font-size: 13px;
+        margin-bottom: 12px;
+      }
+      .link-row {
+        margin-bottom: 10px;
+        font-size: 13px;
+      }
+      .link-row a {
+        color: #38bdf8;
+        text-decoration: none;
+      }
+      .link-row a:hover {
+        text-decoration: underline;
+      }
+      iframe {
+        width: 100%;
+        height: 420px;
+        border-radius: 12px;
+        border: 1px solid #1f2937;
+        background: #020617;
+      }
+      .footer {
+        margin-top: 10px;
+        font-size: 11px;
+        color: #6b7280;
+        text-align: right;
+      }
+      .report-item {
+        padding: 6px 8px;
+        border-radius: 8px;
+        margin-bottom: 4px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .report-item:hover {
+        background: #111827;
+      }
+      .report-item.active {
+        background: #1d2837;
+        border: 1px solid #38bdf8;
+      }
+      .report-item .form {
+        font-weight: 600;
+      }
+      .report-item .date {
+        color: #9ca3af;
+      }
+      .panel {
+        background: #020617;
+        border-radius: 12px;
+        border: 1px solid #1f2937;
+        padding: 10px 12px;
+        margin-bottom: 10px;
+        font-size: 12px;
+      }
+      #metrics-panel table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      #metrics-panel th,
+      #metrics-panel td {
+        padding: 4px 6px;
+        border-bottom: 1px solid #111827;
+        vertical-align: top;
+      }
+      #metrics-panel th {
+        text-align: left;
+        font-weight: 600;
+        color: #9ca3af;
+      }
+      #metrics-panel td.value {
+        text-align: right;
+        white-space: nowrap;
+      }
+      #metrics-panel td.series {
+        font-size: 11px;
+        color: #9ca3af;
+      }
+      #mda-panel {
+        max-height: 200px;
+        overflow: auto;
+        line-height: 1.4;
+      }
+      #mda-panel h1,
+      #mda-panel h2,
+      #mda-panel h3 {
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h1>Earnings Analyser</h1>
+        <div class="subtitle">
+          Type a US ticker and I’ll fetch recent 10-Q / 10-K filings, key metrics, and MD&A.
+        </div>
+
+        <div class="row">
+          <input id="ticker" placeholder="e.g. GOOGL, AAPL, MSFT" />
+          <button id="btn">Get reports</button>
+        </div>
+
+        <div id="message" class="meta"></div>
+        <div id="error" class="error" style="display:none;"></div>
+
+        <div id="result" style="display:none; margin-top: 10px;">
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <div
+              style="width:230px; max-height:560px; overflow:auto; border-right:1px solid #1f2937; padding-right:8px;"
+              id="reports-list"
+            ></div>
+
+            <div style="flex:1;">
+              <div class="meta" id="meta"></div>
+
+              <div id="metrics-panel" class="panel"></div>
+              <div id="mda-panel" class="panel"></div>
+
+              <div class="link-row">
+                <a id="sec-link" href="#" target="_blank">Open on SEC in new tab ↗</a>
+              </div>
+              <iframe id="report-frame"></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        Data from SEC EDGAR (public filings).
+      </div>
+    </div>
+
+    <script>
+      const apiBase = "http://127.0.0.1:8000";
+
+      const tickerInput = document.getElementById("ticker");
+      const btn = document.getElementById("btn");
+      const msg = document.getElementById("message");
+      const errBox = document.getElementById("error");
+      const result = document.getElementById("result");
+      const meta = document.getElementById("meta");
+      const secLink = document.getElementById("sec-link");
+      const frame = document.getElementById("report-frame");
+      const reportsListEl = document.getElementById("reports-list");
+      const metricsPanel = document.getElementById("metrics-panel");
+      const mdaPanel = document.getElementById("mda-panel");
+
+      let currentData = null;
+
+      function formatNumber(n) {
+        if (n === null || n === undefined) return "–";
+        const abs = Math.abs(n);
+        if (abs >= 1e9) return (n / 1e9).toFixed(2) + " B";
+        if (abs >= 1e6) return (n / 1e6).toFixed(2) + " M";
+        if (abs >= 1e3) return (n / 1e3).toFixed(2) + " K";
+        return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+      }
+
+      function renderSeries(series, unit) {
+        if (!series || !series.length) return "No history";
+        return series
+          .map(
+            (p) =>
+              `${p.end} (${p.fp || ""}): ${formatNumber(p.val)}${
+                unit && unit !== "USD" ? " " + unit : ""
+              }`
+          )
+          .join("<br>");
+      }
+
+      function renderReportsList() {
+        reportsListEl.innerHTML = "";
+        if (!currentData || !currentData.reports) return;
+
+        currentData.reports.forEach((r, idx) => {
+          const div = document.createElement("div");
+          div.className = "report-item" + (idx === 0 ? " active" : "");
+          div.dataset.index = idx;
+
+          div.innerHTML = `
+            <div class="form">${r.form}</div>
+            <div class="date">${r.filing_date}</div>
+            <div>${r.accession}</div>
+          `;
+
+          div.addEventListener("click", () => {
+            document
+              .querySelectorAll(".report-item")
+              .forEach((el) => el.classList.remove("active"));
+            div.classList.add("active");
+            loadReport(idx);
+          });
+
+          reportsListEl.appendChild(div);
+        });
+      }
+
+      async function loadDetails(report) {
+        metricsPanel.innerHTML = "Loading metrics…";
+        mdaPanel.innerHTML = "Loading MD&A section…";
+
+        const params = new URLSearchParams({
+          cik: currentData.cik,
+          accession: report.accession,
+          primary_doc: report.primary_doc,
+          filing_date: report.filing_date,
+        });
+
+        try {
+          const resp = await fetch(
+            `${apiBase}/api/report-details?${params.toString()}`
+          );
+          if (!resp.ok) {
+            const data = await resp.json().catch(() => ({}));
+            metricsPanel.innerHTML =
+              "Error loading metrics: " + (data.detail || resp.status);
+            mdaPanel.innerHTML = "Error loading MD&A.";
+            return;
+          }
+          const data = await resp.json();
+
+          const m = data.metrics || {};
+          const rows = [];
+          for (const key of ["revenue", "net_income", "eps_diluted", "cfo"]) {
+            const metric = m[key];
+            if (!metric) continue;
+            rows.push(`
+              <tr>
+                <td>${metric.label}</td>
+                <td class="value">${formatNumber(metric.current)}${
+              metric.unit ? " " + metric.unit : ""
+            }</td>
+                <td class="series">${renderSeries(metric.series, metric.unit)}</td>
+              </tr>
+            `);
+          }
+
+          metricsPanel.innerHTML = `
+            <div style="font-weight:600; margin-bottom:4px;">Key metrics (latest & last periods)</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th class="value">Latest</th>
+                  <th class="series">History</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.join("")}
+              </tbody>
+            </table>
+          `;
+
+          if (data.mda_html) {
+            mdaPanel.innerHTML =
+              `<div style="font-weight:600; margin-bottom:4px;">MD&A extract</div>` +
+              `<div>${data.mda_html}</div>`;
+          } else {
+            mdaPanel.innerHTML =
+              `<div style="font-weight:600; margin-bottom:4px;">MD&A extract</div>` +
+              `<div><em>MD&A section not found in this filing.</em></div>`;
+          }
+        } catch (e) {
+          metricsPanel.innerHTML = "Error loading metrics: " + e;
+          mdaPanel.innerHTML = "Error loading MD&A: " + e;
+        }
+      }
+
+      function loadReport(index) {
+        if (!currentData) return;
+        const r = currentData.reports[index];
+        if (!r) return;
+
+        meta.innerHTML = `
+          <strong>${currentData.ticker}</strong> — ${r.form}
+          &nbsp;•&nbsp; Filed on <strong>${r.filing_date}</strong><br>
+          CIK: ${currentData.cik} &nbsp;&nbsp; Accession: ${r.accession}
+        `;
+
+        secLink.href = r.filing_url;
+
+        const proxyParams = new URLSearchParams({
+          cik: currentData.cik,
+          accession: r.accession,
+          primary_doc: r.primary_doc,
+        });
+
+        frame.src = `${apiBase}/proxy-filing?${proxyParams.toString()}`;
+
+        loadDetails(r);
+      }
+
+      async function fetchReports() {
+        const t = tickerInput.value.trim().toUpperCase();
+        errBox.style.display = "none";
+        result.style.display = "none";
+        msg.textContent = "";
+        metricsPanel.innerHTML = "";
+        mdaPanel.innerHTML = "";
+
+        if (!t) {
+          errBox.textContent = "Please enter a ticker symbol.";
+          errBox.style.display = "block";
+          return;
+        }
+
+        msg.textContent = "Fetching recent filings from EDGAR…";
+
+        try {
+          const resp = await fetch(
+            `${apiBase}/api/reports?ticker=${encodeURIComponent(t)}`
+          );
+
+          if (!resp.ok) {
+            const data = await resp.json().catch(() => ({}));
+            errBox.textContent = data.detail || `Error: ${resp.status}`;
+            errBox.style.display = "block";
+            msg.textContent = "";
+            return;
+          }
+
+          const data = await resp.json();
+          currentData = data;
+
+          renderReportsList();
+          loadReport(0);
+
+          result.style.display = "block";
+          msg.textContent = "";
+        } catch (e) {
+          errBox.textContent = "Request failed: " + e;
+          errBox.style.display = "block";
+          msg.textContent = "";
+        }
+      }
+
+      btn.addEventListener("click", fetchReports);
+      tickerInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") fetchReports();
+      });
+
+      tickerInput.value = "GOOGL";
+    </script>
+  </body>
+</html>
